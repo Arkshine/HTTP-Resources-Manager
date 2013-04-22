@@ -1,4 +1,4 @@
 HTTP-Resources-Manager
 ======================
 
-Managing files sent from an HTTP server on the client.
+AMX Mod X module managing files sent from an HTTP server on the client.
