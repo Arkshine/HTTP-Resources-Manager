@@ -1,12 +1,13 @@
 
-#ifndef MAIN_H
-#define MAIN_H
+#ifndef MODULE_MAIN_H
+#define MODULE_MAIN_H
 
 #include "engineConfigs.h"
 #include "engineCvars.h"
 #include "engineUtils.h"
-#include "utils.h"
+#include "moduleConfigs.h"
+#include "moduleUtils.h"
 
 void OnCommandResourceManager( void );
 
-#endif // MAIN_H
+#endif // MODULE_MAIN_H

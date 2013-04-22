@@ -1,5 +1,5 @@
 
-#include "main.h"
+#include "moduleMain.h"
 
 void OnMetaAttach( void )
 {

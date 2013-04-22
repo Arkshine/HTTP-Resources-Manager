@@ -1,6 +1,6 @@
 
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef MODULE_UTILS_H
+#define MODULE_UTILS_H
 
 #include <time.h>
 #include "engineConfigs.h"
@@ -36,4 +36,4 @@ bool	dirExists		( const char *dir );
 bool	fileExists		( const char *file );
 uint32	fileSize		( const char* file );
 
-#endif // UTILS_H
+#endif // MODULE_UTILS_H

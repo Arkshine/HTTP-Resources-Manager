@@ -2,9 +2,7 @@
 #ifndef PARSECONFIGS_H
 #define PARSECONFIGS_H
 
-#include <extdll.h>
-#include <meta_api.h>
-#include "osdep.h"
+#include "amxxmodule.h"
 
 #include "CString.h"
 #include "CVector.h"

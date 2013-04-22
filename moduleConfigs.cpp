@@ -1,7 +1,7 @@
 
 #include "moduleConfigs.h"
+#include "moduleUtils.h"
 #include "engineCvars.h"
-#include "utils.h"
 
 String ModName;
 String ModuleStatus;
