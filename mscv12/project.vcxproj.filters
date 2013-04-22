@@ -13,30 +13,33 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Fichiers d%27en-tête\STL">
+    <Filter Include="Module SDK">
+      <UniqueIdentifier>{fd3ba4f7-cf4e-46e0-a836-db0ae96dfe80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Module SDK\SDK Base">
+      <UniqueIdentifier>{c616874c-606c-44a6-954d-8a477eb0d6cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Module SDK\AMXX STL">
       <UniqueIdentifier>{860de568-5a52-49a3-8f4a-e3050b91d0dd}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\metaApi.cpp">
-      <Filter>Fichiers sources</Filter>
-    </ClCompile>
     <ClCompile Include="..\main.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\sdk\amxxmodule.cpp">
+      <Filter>Module SDK\SDK Base</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\metaApi.h">
-      <Filter>Fichiers d%27en-tête</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\CVector.h">
-      <Filter>Fichiers d%27en-tête\STL</Filter>
+      <Filter>Module SDK\AMXX STL</Filter>
     </ClInclude>
     <ClInclude Include="..\include\CString.h">
-      <Filter>Fichiers d%27en-tête\STL</Filter>
+      <Filter>Module SDK\AMXX STL</Filter>
     </ClInclude>
     <ClInclude Include="..\include\sm_trie_tpl.h">
-      <Filter>Fichiers d%27en-tête\STL</Filter>
+      <Filter>Module SDK\AMXX STL</Filter>
     </ClInclude>
     <ClInclude Include="..\include\main.h">
       <Filter>Fichiers d%27en-tête</Filter>
@@ -46,6 +49,12 @@
     </ClInclude>
     <ClInclude Include="..\include\configs.h">
       <Filter>Fichiers d%27en-tête</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sdk\amxxmodule.h">
+      <Filter>Module SDK\SDK Base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sdk\moduleconfig.h">
+      <Filter>Module SDK</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

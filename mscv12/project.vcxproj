@@ -12,7 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\main.cpp" />
-    <ClCompile Include="..\metaApi.cpp" />
+    <ClCompile Include="..\sdk\amxxmodule.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\chooker.h" />
@@ -20,8 +20,9 @@
     <ClInclude Include="..\include\CString.h" />
     <ClInclude Include="..\include\CVector.h" />
     <ClInclude Include="..\include\main.h" />
-    <ClInclude Include="..\include\metaApi.h" />
     <ClInclude Include="..\include\sm_trie_tpl.h" />
+    <ClInclude Include="..\sdk\amxxmodule.h" />
+    <ClInclude Include="..\sdk\moduleconfig.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{933B0D94-C6EC-47FB-AE34-2DC9F2B6D851}</ProjectGuid>

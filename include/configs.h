@@ -2,7 +2,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include "metaApi.h"
 #include "CString.h"
 #include "CVector.h"
 #include <entity_state.h>
