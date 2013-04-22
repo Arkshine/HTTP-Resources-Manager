@@ -1,59 +1,11 @@
 
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef ENGINESTRUCTS_H
+#define ENGINESTRUCTS_H
 
-#include "metaApi.h"
-#include "CString.h"
-#include "CVector.h"
-#include <entity_state.h>
-#include <time.h>
-
-const int SVC_RESOURCELIST		= 43;
-const int SVC_RESOURCEREQUEST	= 45;
-const int SVC_RESOURCELOCATION	= 56;
-
-const char ConfigDirectory			[] = "addons/http_resources_manager/configs";
-const char ConfigDefaultResFileName	[] = "@default";
-
-const uint32 MaxClients		= 32;
-const uint32 MaxModLength	= 16;
-const uint32 MaxUrlLength	= 128;
-const uint32 MaxResLength	= 63;
-
-#if defined __linux__
-
-	#define FUNC_SV_SENDRESOURCES_DS				"SV_SendResources"
-	#define FUNC_SV_SENDCONSISTENCYLIST_DS			"SV_SendConsistencyList"
-	#define FUNC_MSG_WRITEBITS_DS					"MSG_WriteBits"
-	#define FUNC_MSG_WRITEBITSTRING_DS				"MSG_WriteBitString"
-	#define FUNC_MSG_STARTBITWRITING_DS				"MSG_StartBitWriting"
-	#define FUNC_MSG_ENDBITWRITING_DS				"MSG_EndBitWriting"
-	#define FUNC_STEAM_NOTIFYCLIENTDISCONNECT_DS	"Steam_NotifyClientDisconnect"
-	#define FUNC_SV_DS								"sv"
-
-#else
-
-	#define FUNC_SV_SENDRESOURCES_DS				"0x55,0x8B,*,0x83,*,*,0x53,0x57,0x6A,*,0x8D"
-	#define FUNC_SV_SENDCONSISTENCYLIST_DS			"0x55,0x8B,*,0x51,0x8B,*,*,*,*,*,0xA1,*,*,*,*,0x53,0x57"
-	#define FUNC_MSG_WRITEBITS_DS					"0x55,0x8B,*,0x8B,*,*,0x53,0x56,0x33,*,0x57,0x8B"
-	#define FUNC_MSG_WRITEBITSTRING_DS				"0x55,0x8B,*,0x56,0x8B,*,*,0x8A,*,0x84,*,0x74,*,0x0F,*,*,0x6A,*,0x50"
-	#define FUNC_MSG_STARTBITWRITING_DS				"0x55,0x8B,*,0x8B,*,*,0xC7,*,*,*,*,*,*,*,*,*,0xA3,*,*,*,*,0x8B"
-	#define FUNC_MSG_ENDBITWRITING_DS				"0x8B,*,*,*,*,*,0xF6,*,*,*,0x75,*,0xA1"
-	#define FUNC_STEAM_NOTIFYCLIENTDISCONNECT_DS	"0x55,0x8B,*,0xA1,*,*,*,*,0x85,*,0x74,*,0x8B,*,*,0x50,0xE8,*,*,*,*,0x8B"
-	#define FUNC_HOST_ISSERVERACTIVE_DS				"0xA1,*,*,*,*,0xC3,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x55,0x8B,*,0x81,*,*,*,*,*,0x53,0x56,0x33"
-
-#endif
-
-#ifndef __linux__
-	#define PATH_SEP_CHAR		'\\'
-	#define ALT_SEP_CHAR		'/'
-#else
-	#define PATH_SEP_CHAR		'/'
-	#define ALT_SEP_CHAR		'\\'
-#endif
-
-#define EOS '\0'
-#define charsmax( a ) ( sizeof( a ) - 1 )
+#include <extdll.h>
+#include <meta_api.h>
+#include "osdep.h"
+#include "entity_state.h"
 
 typedef struct sizebuf_s 
 {
@@ -200,7 +152,7 @@ typedef struct netchan_s
 	int					outgoing_sequence;
 	int					reliable_sequence;
 	int					last_reliable_sequence;
-	client_t *			netchan_client_TO_CHECK;
+	client_t*			netchan_client_TO_CHECK;
 	int					spawned;
 	sizebuf_t			message;
 	char				message_buf[3992];
@@ -282,26 +234,14 @@ struct client_s
 
 typedef struct server_s 
 {
-#if defined __linux__
-	char		padding[0x140];
-#else
-	char		padding[0x148];
-#endif
+	#if defined __linux__
+		char	padding[ 0x140 ];
+	#else
+		char	padding[ 0x148 ];
+	#endif
 	resource_t	consistencyData[ 1280 ]; 
 	uint32		consistencyDataCount; 
 	// [...]
 } server_t;
 
-enum FlagBits
-{
-	None			= 0,
-	FatalIfMissing	= (1<<0),
-	WasMissing		= (1<<1),
-	Custom			= (1<<2),
-	Requested		= (1<<3),
-	Precached		= (1<<4)
-};
-
-
-
-#endif // CONFIG_H
+#endif // ENGINESTRUCTS_H
