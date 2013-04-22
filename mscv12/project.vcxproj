@@ -11,7 +11,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\engineConfigs.cpp" />
+    <ClCompile Include="..\engineCvars.cpp" />
+    <ClCompile Include="..\engineUtils.cpp" />
     <ClCompile Include="..\main.cpp" />
+    <ClCompile Include="..\moduleConfigs.cpp" />
     <ClCompile Include="..\sdk\amxxmodule.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -19,8 +23,14 @@
     <ClInclude Include="..\include\configs.h" />
     <ClInclude Include="..\include\CString.h" />
     <ClInclude Include="..\include\CVector.h" />
+    <ClInclude Include="..\include\engineConfigs.h" />
+    <ClInclude Include="..\include\engineCvars.h" />
+    <ClInclude Include="..\include\engineStructs.h" />
+    <ClInclude Include="..\include\engineUtils.h" />
     <ClInclude Include="..\include\main.h" />
+    <ClInclude Include="..\include\moduleConfigs.h" />
     <ClInclude Include="..\include\sm_trie_tpl.h" />
+    <ClInclude Include="..\include\utils.h" />
     <ClInclude Include="..\sdk\amxxmodule.h" />
     <ClInclude Include="..\sdk\moduleconfig.h" />
   </ItemGroup>
