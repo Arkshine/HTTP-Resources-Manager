@@ -1,4 +1,32 @@
 
+/***
+ *  Copyright 2012 Carlos Sola, Vincent Herbet.
+ *
+ *  This file is part of CHooker library.
+ *
+ *  CHooker library is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  CHooker library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CHooker library. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/* HookByCall array format
+ * 
+CHOOKER_SIG_CALL custom_array[] =
+{
+    { "0x12,0x13,0x14,?,0x15,*,0x16", -2 },
+    { NULL, NULL }
+};
+*/
+
 #ifndef _CHOOKER_H_
 #define _CHOOKER_H_
 
@@ -13,6 +41,23 @@
 	#include <link.h>
 	#include <limits.h>
 	#include <unistd.h>
+	#include <errno.h>
+
+	#ifndef uint32
+		#define uint32	unsigned int
+	#endif
+
+	#ifndef byte
+		#define byte	unsigned char
+	#endif
+
+	#ifndef FALSE
+		#define FALSE	0
+	#endif
+
+	#ifndef TRUE
+		#define TRUE	1
+	#endif
 
 	#ifndef PAGESIZE
 		#define PAGESIZE sysconf(_SC_PAGESIZE)
@@ -34,7 +79,8 @@
 	}
 
 
-	#define GET_EAX_POINTER(x) __asm volatile ("movl %%eax, %0" : "=m" (x):)
+	//#define GET_EAX_POINTER(x) __asm volatile ("movl %%edx, %0; lea 0x01020304, %%edx;" : "=m" (x):)
+	#define GET_EAX_POINTER(x) __asm volatile ("movl %%edx, %0;" : "=m" (x):)
 
 	const unsigned long PAGE_EXECUTE_READWRITE = PROT_READ | PROT_WRITE | PROT_EXEC;
 	const unsigned long PAGE_READWRITE = PROT_READ | PROT_WRITE;
@@ -43,11 +89,17 @@
 
 #else
 
-	#include <Psapi.h>
+	#pragma comment( lib, "Psapi.lib" ) 
+	#pragma comment( lib, "Kernel32.lib" ) 
+	
+	#define PSAPI_VERSION 1
+	
 	#include <windows.h>
+	#include <Psapi.h>
+	#include <WinBase.h>
 	#include <io.h>
 
-	#define GET_EAX_POINTER(x) __asm mov x, eax;
+	#define GET_EAX_POINTER(x) __asm mov x, edx;
 	#define PAGESIZE 4096
 
 #endif
@@ -56,12 +108,30 @@
 
 typedef int BOOL;
 
-enum SignatureEntryType
+typedef enum
+{
+	ReturnOnError,
+	ReturnOnFirst,
+	ContinueOnError
+} PatchActionType;
+
+typedef enum
 { 
 	SpecificByte, 
 	AnyByteOrNothing, 
 	AnyByte 
-};
+} SignatureEntryType;
+
+#define CHOOKER_NONE	0 << 0
+#define CHOOKER_FOUND	1 << 0
+#define CHOOKER_PATCHED	2 << 0
+
+typedef struct {
+	const char *sig;
+	int offset;
+	BOOL mandatory;
+	int result;
+} CHOOKER_SIG_CALL;
 
 class CMemory
 {
@@ -118,10 +188,10 @@ class CMemory
 		{
 			int len = strlen( src );
 
-			unsigned char *sig = new unsigned char[ len ];
+			unsigned char *sig = new unsigned char[ len + 1 ];
 
-			signature		= new unsigned char[ len ];
-			signatureData	= new unsigned char[ len ];
+			signature = new unsigned char[ len ];
+			signatureData = new unsigned char[ len ];
 
 			unsigned char *s1 = signature;
 			unsigned char *s2 = signatureData;
@@ -174,6 +244,7 @@ class CMemory
 
 		BOOL CompareSig( unsigned char *address, unsigned char *signature, unsigned char *signaturedata, int length )
 		{
+//printf("Compare: 0x%x 0x%x 0x%x 0x%x\t%d\n", address, *signature, *address, *signaturedata, length);
 			if( length == 1 )
 			{
 				switch( *signaturedata )
@@ -181,11 +252,11 @@ class CMemory
 					case AnyByteOrNothing:
 					case AnyByte:
 					{
-						return true;
+						return TRUE;
 					}
 					case SpecificByte:
 					{
-						return ( *address == ( byte )*signature );
+						return ( (byte )*address == ( byte )*signature );
 					}
 				}
 			}
@@ -195,15 +266,16 @@ class CMemory
 				{
 					case SpecificByte:
 					{
-						if( *address != ( byte )*signature )
-							return false;
+//printf("\tSpecificByte:\t0x%x 0x%x 0x%x 0x%x 0x%x %d\n", address, signature, *signature, *address, *signaturedata, ( *address != ( byte )*signature ));
+						if( (byte )*address != ( byte )*signature )
+							return FALSE;
 						else
 							return CompareSig( address + 1, signature + 1, signaturedata + 1, length - 1 );
 					}
 					case AnyByteOrNothing:
 					{
 						if( CompareSig( address, signature + 1, signaturedata + 1, length - 1 ) ) 
-							return true;
+							return TRUE;
 					}
 					case AnyByte:
 					{
@@ -213,28 +285,60 @@ class CMemory
 
 			}
 
-			return true;
+			return TRUE;
 		}
 
-		template <typename T>
-		T SearchSignatureByAddress( T* p, char *sig, void* baseaddress, void* endaddress )
+		void *SearchSignatureByLibrary( char *sig, char *libname )
 		{
-			SetupSignature( sig );
+			void *ret;
+			baseadd = endadd = NULL;
+			if(!libname)
+				return SearchSignatureByAddress( sig, this );
 
-			T ret = *p = NULL;
+			GetLibraryFromName( libname );
+			ret = SearchSignature( sig );
 
-			unsigned char *start = ( unsigned char* )baseaddress;
-			unsigned char *end = ( ( unsigned char* )endaddress ) - sigsize;
+			baseadd = endadd = NULL;
+			return ret;
+		}
+
+		void *SearchSignatureByAddress( char *sig, void* libaddr )
+		{
+			void *ret;
+			baseadd = endadd = NULL;
+//			if(!libaddr)
+//				libaddr = (void*)dl_callback;
+
+//printf("SearchSignatureByAddress: 0x%x 0x%x %s\n", libaddr, (void*)dl_callback, sig);
+			GetLibraryFromAddress( libaddr );
+//printf("SearchSignatureByAddress: 0x%x 0x%x\n", baseadd, endadd);
+
+			ret = SearchSignature( sig );
+
+			baseadd = endadd = NULL;
+			return ret;
+		}
+
+		void *SearchSignature( char *signeedle )
+		{
+			SetupSignature( signeedle );
+
+			void *ret = NULL;
+
+			unsigned char *start = ( unsigned char* )baseadd;
+			unsigned char *end = ( ( unsigned char* )endadd ) - sigsize;
 
 			unsigned int length = end - start ;
 
+//printf("SearchSignatureByAddress: 0x%x 0x%x - 0x%x\n", start, length, ChangeMemoryProtection( start, length, PAGE_EXECUTE_READWRITE ));
 			if( ChangeMemoryProtection( start, length, PAGE_EXECUTE_READWRITE ) )
 			{
+//printf("*SearchSignatureByAddress: 0x%x 0x%x - 0x%x\n", start, length, ChangeMemoryProtection( start, length, PAGE_EXECUTE_READWRITE ));
 				for( unsigned int i = 0; i <= length - sigsize; i++ )
 				{
 					if( CompareSig( start + i, signature, signatureData, sigsize ) )
 					{
-						*p = ret = (T)( start + i );
+						ret = (void *)( start + i );
 						break;
 					}
 				}
@@ -246,20 +350,21 @@ class CMemory
 			return ret;
 		}
 
-		template <typename T>
-		T SearchSymbolByAddress( T* p, char *symbol, void *baseaddress )
+		void *SearchSymbolByAddress( char *symbol, void *libaddr )
 		{
-			void *handle = ( void* )0xffffffff;
-
+			//printf("SearchSymbolByAddress: %s libaddr:0x%x\n", symbol, libaddr);
 			#if defined __linux__
 
 				Dl_info info;
+				void *handle = ( void* )0xffffffff;
+				BOOL should_close = FALSE;
 
-				if( baseaddress && dladdr( baseaddress, &info ) )
+				if( libaddr && dladdr( libaddr, &info ) )
 				{
 					handle = dlopen( info.dli_fname, RTLD_NOW );
+					should_close = TRUE;
 				}
-				else if( !baseaddress )
+				else if( !libaddr )
 				{
 					handle = RTLD_DEFAULT;
 				}
@@ -270,83 +375,66 @@ class CMemory
 
 					if( !dlerror() )
 					{
-						*p = (T)s;
-						return (T)s;
+						if(should_close)
+							dlclose(handle);
+						return (void *)s;
 					}
+					if(should_close)
+						dlclose(handle);
 				}
 
 			#else
 
 				HMODULE module;
 
-				if( GetModuleHandleEx( GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, ( LPCSTR )baseaddress, &module ) )
+				if( GetModuleHandleEx( GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, ( LPCSTR )libaddr, &module ) )
 				{
 					void* s = GetProcAddress( module, symbol );
 
 					if( s )
 					{
-						*p = (T)s;
-						return (T)s;
+						return (void *)s;
 					}
 				}
 
 			#endif
 
-			return false;
+			return FALSE;
 		}
 
-		template <typename T>
-		T SearchSignatureByLibrary( T* p, char *sig, char *library )
+		void *SearchSymbolByLibrary( char *symbol, char *libname )
 		{
-			return SearchByLibrary( p, sig, library, FALSE );
-		}
-
-		template <typename T>
-		T SearchSymbolByLibrary( T* p, char *symbol, char *library )
-		{
-			return SearchByLibrary( p, symbol, library, TRUE );
+			printf("SearchSymbolByLibrary: %s libname:%s\n", symbol, libname);
+			if(!libname)
+				GetLibraryFromAddress( NULL );
+			else
+				GetLibraryFromName( libname );
+			
+			return SearchSymbolByAddress( symbol, baseadd );
 		}
 	
-		template <typename T>
-		T SearchByLibrary( T* p, char *data, char *library, BOOL symbol )
-		{
-			void *baseaddress = baseaddress = GetLibraryFromName( library );
-
-			if( symbol )
-				return SearchSymbolByAddress( p, data, baseaddress );
-			else
-				return SearchSignatureByAddress( p, data, baseadd, endadd );
-		}
-
-		template <typename T>
-		T SearchByLibrary( T* p, char *data, void* address, BOOL symbol )
-		{
-			void *baseaddress = address;
-
-			if( symbol )
-				return SearchSymbolByAddress( p, data, baseaddress );
-			else
-				return SearchSignatureByAddress( p, data, baseadd, endadd );
-		}
-
-		void* GetLibraryFromAddress( void* addressContained )
+		void* GetLibraryFromAddress( void* libaddr )
 		{
 			#ifdef __linux__
 			
 				Dl_info info;
 
-				if( addressContained && dladdr( addressContained, &info ) )
+
+//printf("GetLibraryFromAddress: 0x%x\n", libaddr);
+				if( libaddr && dladdr( libaddr, &info ) )
 				{
+//printf("found name: 0x%x\n", libaddr);
 					return GetLibraryFromName( ( char* )info.dli_fname );
 				}
 			
+//printf("not found name: 0x%x\n", libaddr);
 				return GetLibraryFromName( NULL );
 	
 			#else
 
 				HMODULE module;
 
-				if( GetModuleHandleEx( GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, ( LPCSTR )addressContained, &module ) )
+				if( GetModuleHandleEx( GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, ( LPCSTR )libaddr, &module ) )
 				{
 					HANDLE process =  GetCurrentProcess();
 					_MODULEINFO moduleInfo;
@@ -374,8 +462,14 @@ class CMemory
 				library = libname;
 				int baseaddress;
 
+//printf("GetLibraryFromName: %s\n", libname);
+
+				baseadd = ( char * )0xffffffff;
+				endadd = NULL;
+
 				if( ( baseaddress = dl_iterate_phdr( dl_callback, this ) ) )
 				{
+//printf("return library: 0x%x 0x%x 0x%x\n", baseaddress, baseadd, endadd);
 					return ( void* )baseaddress;
 				}
 
@@ -420,6 +514,28 @@ class CMemory
 
 			return NULL;
 		}
+
+		BOOL PatchCall( void *src, int offset, void *dst )
+		{
+			char* call = ( char* )src;
+			call += ++offset;
+			
+			unsigned long address = ( unsigned long )dst - ( unsigned long )call - sizeof( unsigned long );
+			unsigned long oldProtection;
+			
+			if( ChangeMemoryProtection( call, sizeof( unsigned long ), PAGE_EXECUTE_READWRITE, oldProtection ) )
+			{
+				*( unsigned long* )call = address;
+				
+				if( oldProtection == PAGE_EXECUTE_READWRITE || ChangeMemoryProtection( call, sizeof( unsigned long ), oldProtection ) )
+				{
+					return TRUE;
+				}
+			}
+			
+			return FALSE;
+		}
+
 };
 
 class CFunc
@@ -436,8 +552,8 @@ class CFunc
 		unsigned char *original;
 		unsigned char *patched;
 
-		bool ispatched;
-		bool ishooked;
+		BOOL ispatched;
+		BOOL ishooked;
 
 	public:
 
@@ -457,7 +573,7 @@ class CFunc
 			delete memFunc;
 		};
 
-		void *Hook( void *dst )
+		void *Hook( void *dst, BOOL hook )
 		{
 			if( !ishooked && !ispatched )
 			{
@@ -466,9 +582,10 @@ class CFunc
 
 				memcpy( original, address, 12 );
 
-				// lea    this ,%eax
-				patched[0] = 0x8D;
-				patched[1] = 0x05;
+				// lea    this ,%edx
+				// movl    this ,%edx
+				patched[0] = 0x8d;
+				patched[1] = 0x15;
 
 				p = ( unsigned int* )( patched + 2 );
 				*p = ( unsigned int )this;
@@ -481,12 +598,12 @@ class CFunc
 				p = ( unsigned int* )( patched + 8 );
 				*p = ( unsigned int )dst - ( unsigned int )address - 12;
 
-				if( Patch() )
+				if( hook && Patch() )
 				{
 					return address;
 				}
 
-				ishooked = false;
+				ishooked = FALSE;
 			}
 
 			return NULL;
@@ -497,28 +614,28 @@ class CFunc
 			return address;
 		}
 
-		bool Patch()
+		BOOL Patch()
 		{
 			if( !ispatched )
 			{
 				if( memFunc->ChangeMemoryProtection( address, PAGESIZE, PAGE_EXECUTE_READWRITE ) )
 				{
 					memcpy( address, patched, 12 );
-					ispatched = true;
+					ispatched = TRUE;
 				}
 			}
 
 			return ispatched;
 		}
 
-		bool Restore()
+		BOOL Restore()
 		{
 			if( ispatched )
 			{
 				if( memFunc->ChangeMemoryProtection( address, PAGESIZE, PAGE_EXECUTE_READWRITE ) )
 				{
 					memcpy( address, original, 12 );
-					ispatched = false;
+					ispatched = FALSE;
 				}
 			}
 
@@ -566,8 +683,122 @@ class CHooker
 			delete memFunc;
 		}
 
+		template <typename Tdst>
+		BOOL MemoryCallPatchByAddress(CHOOKER_SIG_CALL *sigs, void *libaddr, Tdst dst, PatchActionType action)
+		{
+			void *address;
+			int c = 0;
+			BOOL ret = TRUE;
+	
+			while(sigs[c].sig)
+			{
+				address = memFunc->SearchSignatureByAddress((char*)sigs[c].sig, libaddr);
+				printf("SIG: %d\t%s\t0x%08x\n", sigs[c].offset, sigs[c].sig, address);
+				if(address)
+				{
+					sigs[c].result |= CHOOKER_FOUND;
+					if(memFunc->PatchCall(address, sigs[c].offset, (void*)dst))
+					{
+						sigs[c].result |= CHOOKER_PATCHED;
+					}
+					else
+					{
+						ret = FALSE;
+					}
+					if( ( action == ReturnOnFirst ) && ( sigs[c].result & CHOOKER_PATCHED ) )
+						return TRUE;
+				}
+				else
+				{
+					ret = FALSE;
+					if(sigs[c].mandatory || action == ReturnOnError)
+						return FALSE;
+				}
+				c++;
+			}
+			return ret;
+		}
+
+		template <typename Tdst>
+		BOOL MemoryCallPatchByLibrary(CHOOKER_SIG_CALL *sigs, char *libname, Tdst dst, PatchActionType action)
+		{
+			void *address;
+			int c = 0;
+			BOOL ret = TRUE;
+	
+			while(sigs[c].sig)
+			{
+				address = memFunc->SearchSignatureByLibrary((char*)sigs[c].sig, libname);
+				printf("SIG: %d\t%s\t0x%08x\n", sigs[c].offset, sigs[c].sig, address);
+				if(address)
+				{
+					sigs[c].result |= CHOOKER_FOUND;
+					if(memFunc->PatchCall(address, sigs[c].offset, (void*)dst))
+					{
+						sigs[c].result |= CHOOKER_PATCHED;
+					}
+					else
+					{
+						ret = FALSE;
+					}
+					if( ( action == ReturnOnFirst ) && ( sigs[c].result & CHOOKER_PATCHED ) )
+						return TRUE;
+				}
+				else
+				{
+					ret = FALSE;
+					if(sigs[c].mandatory || action== ReturnOnError)
+						return FALSE;
+				}
+				c++;
+			}
+			return ret;
+		}
+
+		template <typename Tdst>
+		BOOL MemoryCallPatch(CHOOKER_SIG_CALL *sigs, void *libaddr, Tdst dst, PatchActionType action)
+		{
+			return MemoryCallPatchByAddress(sigs, libaddr, dst, action);
+		}
+
+		template <typename Tdst>
+		BOOL MemoryCallPatch(CHOOKER_SIG_CALL *sigs, char *libname, Tdst dst, PatchActionType action)
+		{
+			return MemoryCallPatchByLibrary(sigs, libname, dst, action);
+		}
+
+		template <typename Tret, typename Tdata>
+		Tret MemorySearch(Tdata const data, void *libaddr, BOOL issym)
+		{
+			//printf("MemorySearch: 0x%x %s\n", libaddr, data);
+			if(issym)
+				return (Tret)memFunc->SearchSymbolByAddress((char *)data, libaddr);
+			else
+				return (Tret)memFunc->SearchSignatureByAddress((char *)data, libaddr);
+		}
+
+		template <typename Tret, typename Tdata, typename Tlib>
+		Tret MemorySearch(Tdata const data, Tlib const libname, BOOL issym)
+		{
+			//printf("MemorySearch: %s %s\n", libname, data);
+			if(issym)
+				return (Tret)memFunc->SearchSymbolByLibrary((char *)data, (char *)libname);
+			else
+				return (Tret)memFunc->SearchSignatureByLibrary((char *)data, (char *)libname);
+		}
+
+		void* MemoryByLibrary( char *libname )
+		{
+			return memFunc->GetLibraryFromName( libname );
+		}
+
+		void* MemoryByAddress( void *libaddr )
+		{
+			return memFunc->GetLibraryFromAddress( libaddr );
+		}
+
 		template <typename Tsrc, typename Tdst>
-		CFunc* AddHook(Tsrc src, Tdst dst)
+		CFunc* CreateHook(Tsrc src, Tdst dst, BOOL hook)
 		{
 			if( !src || !dst )
 				return NULL;
@@ -606,7 +837,8 @@ class CHooker
 				}
 			}
 
-			obj->func->Hook( ( void* )dst );
+			if( obj->func )
+				obj->func->Hook( ( void* )dst, hook );
 
 			return obj->func;
 		}
@@ -618,15 +850,21 @@ class CHooker
 	{
 		CMemory* obj = ( CMemory* )data;
 
-		if( ( !obj->library && !strlen( info->dlpi_name ) ) || strstr( info->dlpi_name, obj->library ) > 0 )
+		if( ( !obj->library ) || strstr( info->dlpi_name, obj->library ) > 0 )
 		{
-			uint32 i = info->dlpi_phnum;
+			int i;
+			BOOL ismain = FALSE;
 
-			for( --i; i > 0; i-- )
+			if( info->dlpi_addr == 0x00 )
+				ismain = TRUE;
+			else
+				obj->baseadd = ( char * )info->dlpi_addr;
+
+			for( i = 0; i < info->dlpi_phnum; i++)
 			{
 				if( info->dlpi_phdr[i].p_memsz && IAlign( info->dlpi_phdr[i].p_vaddr ) )
 				{
-					if( ( uint32 )obj->baseadd > IAlign( info->dlpi_phdr[i].p_vaddr ) )
+					if( ismain && ( uint32 )obj->baseadd > IAlign( info->dlpi_phdr[i].p_vaddr ) )
 						obj->baseadd = ( char* )IAlign( info->dlpi_phdr[i].p_vaddr );
 				
 					if( ( uint32 )obj->endadd < ( info->dlpi_phdr[i].p_vaddr + info->dlpi_phdr[i].p_memsz ) )
@@ -634,7 +872,9 @@ class CHooker
 				}
 			}
 
-			return ( int )info->dlpi_addr;
+			obj->endadd += info->dlpi_addr;
+
+			return ( int )obj->baseadd;
 		}
 
 		return 0;
@@ -643,3 +883,4 @@ class CHooker
 #endif
 
 #endif // _CHOOKER_H_
+  
