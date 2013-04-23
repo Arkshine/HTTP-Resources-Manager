@@ -182,8 +182,6 @@ void OnMetaDetach( void )
 
 void OnSV_SendResources( sizebuf_t* buf )
 {
-	printf( "OnSV_SendResources\n" );
-
 	byte temprguc[ 32 ];
 
 	memset( temprguc, 0, sizeof temprguc );
