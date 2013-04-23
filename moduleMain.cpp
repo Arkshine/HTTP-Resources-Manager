@@ -64,9 +64,6 @@ int OnSpawn( edict_t* pEntity )
 	{
 		handleConfig();
 
-		PRECACHE_MODEL( "models/ovimaps/chair1.mdl" );
-		PRECACHE_MODEL( "models/ovimaps/watercooler.mdl" );
-
 		Initialized = true;
 	}
 
