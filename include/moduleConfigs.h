@@ -48,6 +48,8 @@ extern CVector< String >		CustomUrlsList;
 extern String PlayerCurrentIp			[ MaxClients + 1 ];
 extern time_t PlayerNextReconnectTime	[ MaxClients + 1 ];
 
+extern cvar_t rm_enable_downloadfix;
+
 void	handleCvars			( void );
 void	handleConfig		( void );
 

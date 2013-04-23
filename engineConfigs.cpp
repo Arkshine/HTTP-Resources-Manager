@@ -17,6 +17,8 @@ FuncSteam_NotifyClientDisconnect	Steam_NotifyClientDisconnect	= NULL;
 	void* Host_IsServerActive = NULL;
 #endif 
 
+CFunc* NotifyClientDisconnectHook = NULL;
+
 server_s* sv = NULL;
 
 String ServerLocalIp;
@@ -130,7 +132,8 @@ bool createSendResourcesHook( void )
 
 	if( Steam_NotifyClientDisconnect )
 	{
-		NotifyClientDisconnectHookCreated = Hooker->CreateHook( ( void* )Steam_NotifyClientDisconnect, ( void* )OnSteam_NotifyClientDisconnect, TRUE ) ? true : false;
+		NotifyClientDisconnectHook = Hooker->CreateHook( ( void* )Steam_NotifyClientDisconnect, ( void* )OnSteam_NotifyClientDisconnect, rm_enable_downloadfix.value > 0 );
+		NotifyClientDisconnectHookCreated = NotifyClientDisconnectHook? true : false;
 	}
 
 	return SendResourcesHookCreated && NotifyClientDisconnectHookCreated;
