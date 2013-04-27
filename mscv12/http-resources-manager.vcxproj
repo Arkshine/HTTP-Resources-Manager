@@ -108,7 +108,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>psapi.lib;Kernel32.lib;</AdditionalDependencies>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>false</DataExecutionPrevention>
       <AssemblyDebug>true</AssemblyDebug>
