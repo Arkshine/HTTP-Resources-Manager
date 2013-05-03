@@ -27,9 +27,9 @@ enum FlagBits
 
 enum
 {
-	MAP_PREFIX = 1,
+	MAP_DEFAULT = 1,
+	MAP_PREFIX,
 	MAP_NAME,
-	MAP_DEFAULT
 };
 
 extern String ModName;
@@ -57,7 +57,7 @@ String	getNextCustomUrl	( void );
 
 void	populateList		( CVector< String >* list, CVector< String >* entries );
 void	populateList		( CVector< resource_t* >* list, CVector< String >* entries );
-bool	retrieveFileEntries	( const char* file, CVector< String >* resList, CVector< String >* urlList, bool required = false );
+void	retrieveFileEntries	( const char* file, CVector< String >* resList, CVector< String >* urlList );
 bool	isEntryDuplicated	( const char* entry, CVector< String >* entriesList );
 
 #endif // PARSECONFIGS_H

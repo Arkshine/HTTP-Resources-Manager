@@ -50,30 +50,21 @@ void handleConfig( void )
 
 		ModuleConfigStatus.append( UTIL_VarArgs( "\tMap name : %s\n\tMap prefix : %s\n", mapName.c_str(), mapPrefix.c_str() == NULL ? "(no prefix)" : mapPrefix.c_str() ) );
 
-		for( uint32 type = mapPrefix.c_str() ? MAP_PREFIX : MAP_NAME; type <= MAP_DEFAULT; type++ )
+		for( int type = MAP_DEFAULT; type <= MAP_NAME; type++ )
 		{
-			switch( type )
+			if( type == MAP_PREFIX && mapPrefix.c_str() == NULL )
 			{
-				case MAP_PREFIX : snprintf( file, charsmax( file ), "%s/prefix-%s.res", ConfigDirectory, mapPrefix.c_str() );	break;
-				case MAP_NAME	: snprintf( file, charsmax( file ), "%s/%s.res", ConfigDirectory, mapName.c_str() );			break;
-				case MAP_DEFAULT: snprintf( file, charsmax( file ), "%s/%s.res", ConfigDirectory, ConfigDefaultResFileName );	break;
+				continue;
 			}
 
-			if( rm_default_fallback.value > 0 )
-			{
-				if( fileExists( file ) && retrieveFileEntries( file, &resourcesList, &urlsList ) )
-				{
-					break;
-				}
+			switch( type )
+			{ 
+				case MAP_DEFAULT: snprintf( file, charsmax( file ), "%s/%s.res", ConfigDirectory, ConfigDefaultResFileName );	break;
+				case MAP_PREFIX : snprintf( file, charsmax( file ), "%s/prefix-%s.res", ConfigDirectory, mapPrefix.c_str() );	break;
+				case MAP_NAME	: snprintf( file, charsmax( file ), "%s/%s.res", ConfigDirectory, mapName.c_str() );			break;
 			}
-			else
-			{
-				if( fileExists( file ) )
-				{
-					retrieveFileEntries( file, &resourcesList, &urlsList, type == MAP_PREFIX || type == MAP_DEFAULT );
-					continue;
-				}
-			}
+
+			retrieveFileEntries( file, &resourcesList, &urlsList );
 		}
 		
 		ModuleConfigStatus.append( "\n" );
@@ -92,9 +83,9 @@ void handleConfig( void )
 	//printf( moduleConfigStatus.c_str() );
 }
 
-bool retrieveFileEntries( const char* file, CVector< String >* resList, CVector< String >* urlList, bool required )
+void retrieveFileEntries( const char* file, CVector< String >* resList, CVector< String >* urlList )
 {
-	ModuleConfigStatus.append( UTIL_VarArgs( "\n\tAttempting to parse \"%s\" file...\n", file ) );
+	ModuleConfigStatus.append( UTIL_VarArgs( "\n\tAttempting to parse \"%s\" file...\n\n", file ) );
 
 	char path[ 255 ];
 	buildPathName( path, charsmax( path ), "%s", file );
@@ -103,23 +94,11 @@ bool retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 
 	if( !fp )
 	{
-		ModuleConfigStatus.append( "\t\t(!) Could not open file, even though it exists.\n\n" );
-		return false;
+		ModuleConfigStatus.append( "\t\t\tThe file doesn't exist or could not be opened.\n" );
+		return;
 	}
 
-	bool searchForResources	= true;
-	bool searchForUrls		= true;
-
-	if( !required )
-	{
-		searchForResources	= !resList->size();
-		searchForUrls		= !urlList->size();
-	}
-
-	ModuleConfigStatus.append( UTIL_VarArgs( "\t\tSearching for %s%s%s...\n", 
-		searchForResources ? "resources" : "", 
-		searchForResources && searchForUrls ? " and " : "",
-		searchForUrls ? "urls" : "" ) );
+	ModuleConfigStatus.append( "\t\tSearching for resources and urls...\n\n" );
 
 	char	lineRead[ 134 ], ch;
 	String	line;
@@ -137,7 +116,7 @@ bool retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 			continue;
 		}
 
-		if( searchForUrls && !strncasecmp( line.c_str(), downloadUrlIdent, charsmax( downloadUrlIdent ) ) )
+		if( !strncasecmp( line.c_str(), downloadUrlIdent, charsmax( downloadUrlIdent ) ) )
 		{
 			line.erase( 0, charsmax( downloadUrlIdent ) );
 			line.trim();
@@ -156,7 +135,7 @@ bool retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 
 			continue;
 		}
-		else if( searchForResources )
+		else
 		{
 			normalizePath( &line );
 
@@ -285,14 +264,10 @@ bool retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 
 	fclose( fp );
 
-	bool result = resList->size() && urlList->size();
-
-	if( !result )
+	if( !resList->size() && !urlList->size() )
 	{
 		ModuleConfigStatus.append( "\t\t\tNo entries found.\n" );
 	}
-
-	return result;
 }
 
 bool isEntryDuplicated( const char* entry, CVector< String >* entriesList )
