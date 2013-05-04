@@ -106,6 +106,9 @@ void retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 
 	const char downloadUrlIdent[] = "downloadurl";
 
+	int downloadUrlsCount = 0;
+	int resourcesFilesCount = 0;
+
 	while( fgets( lineRead, charsmax( lineRead ), fp ) )
 	{
 		line = lineRead;
@@ -126,11 +129,13 @@ void retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 			if( !isEntryDuplicated( line.c_str(), urlList ) )
 			{
 				urlList->push_back( line );
-				ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound \"%s\"\n", line.c_str() ) );
+				ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound url \"%s\"\n", line.c_str() ) );
+
+				downloadUrlsCount++;
 			}
 			else
 			{
-				ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound duplicated \"%s\", ignoring...\n", line.c_str() ) );
+				ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound url \"%s\" > Duplicated, ignoring...\n", line.c_str() ) );
 			}
 
 			continue;
@@ -148,20 +153,24 @@ void retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 
 			if( !dirExists( line.c_str() ) )
 			{
-				if( !isEntryDuplicated( line.c_str(), urlList ) )
+				if( !fileExists( line.c_str() ) )
+				{
+					ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound directory \"%s\" > It doesn't seem to exist, ignoring...\n", line.c_str() ) );
+				}
+				else if( !isEntryDuplicated( line.c_str(), urlList ) )
 				{
 					urlList->push_back( line );
-					ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound \"%s\"\n", line.c_str() ) );
+					ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound resource \"%s\"\n", line.c_str() ) );
+
+					resourcesFilesCount++;
 				}
 				else
 				{
-					ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound duplicated \"%s\", ignoring...\n", line.c_str() ) );
+					ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound resource \"%s\" > Duplicated, ignoring...\n", line.c_str() ) );
 				}
 			}
 			else
 			{
-				ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tSearching inside \"%s\" directory...\n", line.c_str() ) );
-
 				#if defined WIN32
 
 				WIN32_FIND_DATA fd;
@@ -169,9 +178,11 @@ void retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 
 				if( hFile == INVALID_HANDLE_VALUE )
 				{
-					ModuleConfigStatus.append( "\t\t\t\t(!)Could not open directory. Skipping...\n" );
+					ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound directory \"%s\" > Could not open it, ignoring...\n", line.c_str() ) );
 					continue;
 				}
+
+				ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound directory \"%s\" > Searching inside...\n", line.c_str() ) );
 
 				path[ length = strlen( path ) - 1 ] = EOS;
 
@@ -189,18 +200,20 @@ void retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 						{
 							if( strlen( path + ModName.size() + 1 ) > MaxResLength )
 							{
-								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tSkipping \"%s\" file (full path length > %d)... \n", fd.cFileName, MaxResLength ) );
+								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound resource \"%s\" > Full path length > %d, ignoring... \n", fd.cFileName, MaxResLength ) );
 								continue;
 							}
 
 							if( !isEntryDuplicated( path + ModName.size() + 1, resList ) )
 							{
 								resList->push_back( path + ModName.size() + 1 );
-								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound \"%s\"\n", fd.cFileName ) );
+								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound resource \"%s\"\n", fd.cFileName ) );
+
+								resourcesFilesCount++;
 							}
 							else
 							{
-								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound duplicated \"%s\", ignoring...\n", fd.cFileName ) );
+								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound resource \"%s\" > Duplicated, ignoring...\n", fd.cFileName ) );
 							}
 						}
 					}
@@ -244,6 +257,8 @@ void retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 							{
 								resList->push_back( path + ModName.size() + 1 );
 								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound \"%s\"\n", ep->d_name ) );
+
+								resourcesFilesCount++;
 							}
 							else
 							{
@@ -264,7 +279,7 @@ void retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 
 	fclose( fp );
 
-	if( !resList->size() && !urlList->size() )
+	if( !resourcesFilesCount && !downloadUrlsCount )
 	{
 		ModuleConfigStatus.append( "\t\t\tNo entries found.\n" );
 	}
