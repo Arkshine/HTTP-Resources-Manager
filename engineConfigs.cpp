@@ -132,7 +132,7 @@ bool createSendResourcesHook( void )
 
 	if( Steam_NotifyClientDisconnect )
 	{
-		NotifyClientDisconnectHook = Hooker->CreateHook( ( void* )Steam_NotifyClientDisconnect, ( void* )OnSteam_NotifyClientDisconnect, rm_enable_downloadfix.value > 0 );
+		NotifyClientDisconnectHook = Hooker->CreateHook( ( void* )Steam_NotifyClientDisconnect, ( void* )OnSteam_NotifyClientDisconnect, CvarEnableDownloadFix->value > 0 );
 		NotifyClientDisconnectHookCreated = NotifyClientDisconnectHook? true : false;
 	}
 

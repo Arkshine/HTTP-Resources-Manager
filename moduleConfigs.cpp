@@ -23,13 +23,15 @@ uint32 CurrentUrlIndex = 0;
 String PlayerCurrentIp			[ MaxClients + 1 ];
 time_t PlayerNextReconnectTime	[ MaxClients + 1 ];
 
-cvar_t rm_default_fallback		= { "rm_default_fallback"	, "0" };
 cvar_t rm_enable_downloadfix	= { "rm_enable_downloadfix" , "0" };
+
+cvar_t* CvarEnableDownloadFix = NULL;
 
 void handleCvars( void )
 {
-	CVAR_REGISTER( &rm_default_fallback );
 	CVAR_REGISTER( &rm_enable_downloadfix );
+
+	CvarEnableDownloadFix = CVAR_GET_POINTER( rm_enable_downloadfix.name );
 }
 
 void handleConfig( void )
