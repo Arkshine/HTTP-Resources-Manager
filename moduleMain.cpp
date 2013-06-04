@@ -74,7 +74,7 @@ qboolean OnClientConnectPost( edict_t *pEntity, const char *pszName, const char 
 {
 	if( Initialized && sv_allowdownload->value > 0 )
 	{
-		if( CvarEnableDownloadFix->value <= 0 )
+		if( rm_enable_downloadfix.value <= 0 )
 		{
 			NotifyClientDisconnectHook->Restore();
 			RETURN_META_VALUE( MRES_IGNORED, TRUE );
@@ -154,6 +154,11 @@ void OnServerDeactivatePost( void )
 		CustomUrlsList.clear();
 
 		ModuleConfigStatus.clear();
+
+        for( int i = 1; i <= gpGlobals->maxClients; i++ )
+        {
+            PlayerCurrentIp[ i ].clear();
+        }
 
 		Initialized = false;
 	}

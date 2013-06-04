@@ -25,13 +25,9 @@ time_t PlayerNextReconnectTime	[ MaxClients + 1 ];
 
 cvar_t rm_enable_downloadfix	= { "rm_enable_downloadfix" , "0" };
 
-cvar_t* CvarEnableDownloadFix = NULL;
-
 void handleCvars( void )
 {
 	CVAR_REGISTER( &rm_enable_downloadfix );
-
-	CvarEnableDownloadFix = CVAR_GET_POINTER( rm_enable_downloadfix.name );
 }
 
 void handleConfig( void )
@@ -93,10 +89,10 @@ void retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 	buildPathName( path, charsmax( path ), "%s", file );
 
 	FILE *fp = fopen( path, "rt" );
-
+    
 	if( !fp )
 	{
-		ModuleConfigStatus.append( "\t\t\tThe file doesn't exist or could not be opened.\n" );
+		ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tThe file doesn't exist or could not be opened. path = %s, strerror = %s\n", path, strerror( errno ) ) );
 		return;
 	}
 

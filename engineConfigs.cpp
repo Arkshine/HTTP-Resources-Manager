@@ -86,7 +86,7 @@ bool findFunctions( void )
 	MSG_StartBitWriting		= Hooker->MemorySearch< FuncMSG_StartBitWriting >	( FUNC_MSG_STARTBITWRITING_DS	, engineAddress, useSymbol );
 	MSG_EndBitWriting		= Hooker->MemorySearch< FuncMSG_EndBitWriting >		( FUNC_MSG_ENDBITWRITING_DS		, engineAddress, useSymbol );
 
-	Steam_NotifyClientDisconnect = Hooker->MemorySearch<FuncSteam_NotifyClientDisconnect>( FUNC_STEAM_NOTIFYCLIENTDISCONNECT_DS, engineAddress, useSymbol );
+	Steam_NotifyClientDisconnect = Hooker->MemorySearch< FuncSteam_NotifyClientDisconnect >( FUNC_STEAM_NOTIFYCLIENTDISCONNECT_DS, engineAddress, useSymbol );
 
 	#if defined __linux__
 
@@ -132,8 +132,8 @@ bool createSendResourcesHook( void )
 
 	if( Steam_NotifyClientDisconnect )
 	{
-		NotifyClientDisconnectHook = Hooker->CreateHook( ( void* )Steam_NotifyClientDisconnect, ( void* )OnSteam_NotifyClientDisconnect, CvarEnableDownloadFix->value > 0 );
-		NotifyClientDisconnectHookCreated = NotifyClientDisconnectHook? true : false;
+		NotifyClientDisconnectHook = Hooker->CreateHook( ( void* )Steam_NotifyClientDisconnect, ( void* )OnSteam_NotifyClientDisconnect, rm_enable_downloadfix.value > 0 );
+		NotifyClientDisconnectHookCreated = NotifyClientDisconnectHook ? true : false;
 	}
 
 	return SendResourcesHookCreated && NotifyClientDisconnectHookCreated;
