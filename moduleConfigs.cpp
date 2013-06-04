@@ -92,7 +92,7 @@ void retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
     
 	if( !fp )
 	{
-		ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tThe file doesn't exist or could not be opened. path = %s, strerror = %s\n", path, strerror( errno ) ) );
+		ModuleConfigStatus.append( "\t\t\tThe file doesn't exist or could not be opened.\n" );
 		return;
 	}
 
