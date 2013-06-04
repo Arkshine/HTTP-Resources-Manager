@@ -227,8 +227,8 @@ void retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 
 				if( ( dp = opendir ( buildPathName( path, charsmax( path ), "%s", line.c_str() ) ) ) == NULL )
 				{
-					ModuleConfigStatus.append( "\t\t\t\t(!)Could not open directory. Skipping...\n" );
-					return false;
+                    ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound directory \"%s\" > Could not open it, ignoring...\n", line.c_str() ) )
+					continue;
 				}
 
 				path[ length = strlen( path ) ] = EOS;
@@ -247,20 +247,20 @@ void retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 						{
 							if( strlen( path + ModName.size() + 1 ) > MaxResLength )
 							{
-								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tSkipping \"%s\" file (full path length > %d)... \n", ep->d_name, MaxResLength ) );
-								continue;
+								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound resource \"%s\" > Full path length > %d, ignoring... \n", ep->d_name, MaxResLength ) );
+                                continue;
 							}
 
-							if( isEntryDuplicated( path + ModName.size() + 1, resList ) )
+							if( !isEntryDuplicated( path + ModName.size() + 1, resList ) )
 							{
 								resList->push_back( path + ModName.size() + 1 );
-								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound \"%s\"\n", ep->d_name ) );
+                                ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound resource \"%s\"\n", ep->d_name ) );
 
 								resourcesFilesCount++;
 							}
 							else
 							{
-								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound duplicated \"%s\", ignoring...\n", ep->d_name ) );
+                                ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound resource \"%s\" > Duplicated, ignoring...\n", ep->d_name ) );
 							}
 						}
 					}
