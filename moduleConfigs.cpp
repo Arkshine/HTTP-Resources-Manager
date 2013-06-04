@@ -75,7 +75,7 @@ void handleConfig( void )
 		ModuleConfigStatus.append( "\tMissing configuration directory.\n" );
 	}
 
-	ModuleConfigStatus.append( "\n Configuration initialization started.\n\n" );
+	ModuleConfigStatus.append( "\n Configuration initialization ended.\n\n" );
 
 	// Don't show it by default.
 	//printf( moduleConfigStatus.c_str() );
