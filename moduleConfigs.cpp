@@ -227,7 +227,7 @@ void retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 
 				if( ( dp = opendir ( buildPathName( path, charsmax( path ), "%s", line.c_str() ) ) ) == NULL )
 				{
-                    ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound directory \"%s\" > Could not open it, ignoring...\n", line.c_str() ) )
+                    ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound directory \"%s\" > Could not open it, ignoring...\n", line.c_str() ) );
 					continue;
 				}
 
