@@ -121,6 +121,7 @@ uint32 fileSize( const char* file )
 	{
 		fseek( f, 0, SEEK_END );
 		size = ( int )ftell( f );
+		fclose( f );
 	}
 
 	fullpath[ 0 ] = EOS;
