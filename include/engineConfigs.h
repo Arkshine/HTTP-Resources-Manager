@@ -45,6 +45,8 @@ extern FuncMSG_StartBitWriting			MSG_StartBitWriting;
 extern FuncMSG_EndBitWriting			MSG_EndBitWriting;
 extern FuncSteam_NotifyClientDisconnect	Steam_NotifyClientDisconnect;
 
+extern CFunc* NotifyClientDisconnectHook;
+
 extern server_s* sv;
 
 extern String	ServerLocalIp;

@@ -64,9 +64,6 @@ int OnSpawn( edict_t* pEntity )
 	{
 		handleConfig();
 
-		PRECACHE_MODEL( "models/ovimaps/chair1.mdl" );
-		PRECACHE_MODEL( "models/ovimaps/watercooler.mdl" );
-
 		Initialized = true;
 	}
 
@@ -77,6 +74,16 @@ qboolean OnClientConnectPost( edict_t *pEntity, const char *pszName, const char 
 {
 	if( Initialized && sv_allowdownload->value > 0 )
 	{
+		if( rm_enable_downloadfix.value <= 0 )
+		{
+			NotifyClientDisconnectHook->Restore();
+			RETURN_META_VALUE( MRES_IGNORED, TRUE );
+		}
+		else
+		{
+			NotifyClientDisconnectHook->Patch();
+		}
+
 		char	ip[ 16 ];
 		uint32	player				= ENTINDEX( pEntity );
 		time_t	timeSystem			= getSysTime();
@@ -148,6 +155,11 @@ void OnServerDeactivatePost( void )
 
 		ModuleConfigStatus.clear();
 
+        for( int i = 1; i <= gpGlobals->maxClients; i++ )
+        {
+            PlayerCurrentIp[ i ].clear();
+        }
+
 		Initialized = false;
 	}
 
@@ -175,8 +187,6 @@ void OnMetaDetach( void )
 
 void OnSV_SendResources( sizebuf_t* buf )
 {
-	printf( "OnSV_SendResources\n" );
-
 	byte temprguc[ 32 ];
 
 	memset( temprguc, 0, sizeof temprguc );
@@ -195,7 +205,7 @@ void OnSV_SendResources( sizebuf_t* buf )
 
 	MSG_WriteByte( buf, SVC_RESOURCELIST );
 	MSG_StartBitWriting( buf );
-	MSG_WriteBits( sv->consistencyDataCount/* + CustomResourcesList.size()*/, 12 );
+	MSG_WriteBits( sv->consistencyDataCount + CustomResourcesList.size(), 12 );
 
 	resource_t* res = NULL;
 
@@ -236,7 +246,7 @@ void OnSV_SendResources( sizebuf_t* buf )
 			}
 		}
 
-		/*if( sv_allowdownload->value > 0 && CustomResourcesList.size() )
+		if( sv_allowdownload->value > 0 && CustomResourcesList.size() )
 		{
 			for( CVector< resource_s* >::iterator iter = CustomResourcesList.begin(); iter != CustomResourcesList.end(); ++iter )
 			{
@@ -249,39 +259,6 @@ void OnSV_SendResources( sizebuf_t* buf )
 				MSG_WriteBits( res->ucFlags & 3, 3 );
 				MSG_WriteBits( 0, 1 );
 			}
-		}*/
-	}
-
-	SV_SendConsistencyList();
-
-	MSG_EndBitWriting( buf );
-
-
-
-	url = getNextCustomUrl();
-
-	if( url.c_str() && url.size() < MaxUrlLength )
-	{
-		MSG_WriteByte( buf, SVC_RESOURCELOCATION);
-		MSG_WriteString( buf, url.c_str() );
-	}
-
-	MSG_WriteByte( buf, SVC_RESOURCELIST );
-	MSG_StartBitWriting( buf );
-	MSG_WriteBits( CustomResourcesList.size(), 12 );
-
-	if( sv_allowdownload->value > 0 && CustomResourcesList.size() )
-	{
-		for( CVector< resource_s* >::iterator iter = CustomResourcesList.begin(); iter != CustomResourcesList.end(); ++iter )
-		{
-			res = ( *iter );
-
-			MSG_WriteBits( res->type, 4 );
-			MSG_WriteBitString( res->szFileName );
-			MSG_WriteBits( res->nIndex, 12 );
-			MSG_WriteBits( res->nDownloadSize, 24 );
-			MSG_WriteBits( res->ucFlags & 3, 3 );
-			MSG_WriteBits( 0, 1 );
 		}
 	}
 

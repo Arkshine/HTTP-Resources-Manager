@@ -23,12 +23,11 @@ uint32 CurrentUrlIndex = 0;
 String PlayerCurrentIp			[ MaxClients + 1 ];
 time_t PlayerNextReconnectTime	[ MaxClients + 1 ];
 
-cvar_t rm_default_fallback = { "rm_default_fallback", "0" };
-
+cvar_t rm_enable_downloadfix	= { "rm_enable_downloadfix" , "0" };
 
 void handleCvars( void )
 {
-	CVAR_REGISTER( &rm_default_fallback );
+	CVAR_REGISTER( &rm_enable_downloadfix );
 }
 
 void handleConfig( void )
@@ -49,30 +48,21 @@ void handleConfig( void )
 
 		ModuleConfigStatus.append( UTIL_VarArgs( "\tMap name : %s\n\tMap prefix : %s\n", mapName.c_str(), mapPrefix.c_str() == NULL ? "(no prefix)" : mapPrefix.c_str() ) );
 
-		for( uint32 type = mapPrefix.c_str() ? MAP_PREFIX : MAP_NAME; type <= MAP_DEFAULT; type++ )
+		for( int type = MAP_DEFAULT; type <= MAP_NAME; type++ )
 		{
-			switch( type )
+			if( type == MAP_PREFIX && mapPrefix.c_str() == NULL )
 			{
-				case MAP_PREFIX : snprintf( file, charsmax( file ), "%s/prefix-%s.res", ConfigDirectory, mapPrefix.c_str() );	break;
-				case MAP_NAME	: snprintf( file, charsmax( file ), "%s/%s.res", ConfigDirectory, mapName.c_str() );			break;
-				case MAP_DEFAULT: snprintf( file, charsmax( file ), "%s/%s.res", ConfigDirectory, ConfigDefaultResFileName );	break;
+				continue;
 			}
 
-			if( rm_default_fallback.value > 0 )
-			{
-				if( fileExists( file ) && retrieveFileEntries( file, &resourcesList, &urlsList ) )
-				{
-					break;
-				}
+			switch( type )
+			{ 
+				case MAP_DEFAULT: snprintf( file, charsmax( file ), "%s/%s.res", ConfigDirectory, ConfigDefaultResFileName );	break;
+				case MAP_PREFIX : snprintf( file, charsmax( file ), "%s/prefix-%s.res", ConfigDirectory, mapPrefix.c_str() );	break;
+				case MAP_NAME	: snprintf( file, charsmax( file ), "%s/%s.res", ConfigDirectory, mapName.c_str() );			break;
 			}
-			else
-			{
-				if( fileExists( file ) )
-				{
-					retrieveFileEntries( file, &resourcesList, &urlsList, type == MAP_PREFIX || type == MAP_DEFAULT );
-					continue;
-				}
-			}
+
+			retrieveFileEntries( file, &resourcesList, &urlsList );
 		}
 		
 		ModuleConfigStatus.append( "\n" );
@@ -85,46 +75,37 @@ void handleConfig( void )
 		ModuleConfigStatus.append( "\tMissing configuration directory.\n" );
 	}
 
-	ModuleConfigStatus.append( "\n Configuration initialization started.\n\n" );
+	ModuleConfigStatus.append( "\n Configuration initialization ended.\n\n" );
 
 	// Don't show it by default.
 	//printf( moduleConfigStatus.c_str() );
 }
 
-bool retrieveFileEntries( const char* file, CVector< String >* resList, CVector< String >* urlList, bool required )
+void retrieveFileEntries( const char* file, CVector< String >* resList, CVector< String >* urlList )
 {
-	ModuleConfigStatus.append( UTIL_VarArgs( "\n\tAttempting to parse \"%s\" file...\n", file ) );
+	ModuleConfigStatus.append( UTIL_VarArgs( "\n\tAttempting to parse \"%s\" file...\n\n", file ) );
 
 	char path[ 255 ];
 	buildPathName( path, charsmax( path ), "%s", file );
 
 	FILE *fp = fopen( path, "rt" );
-
+    
 	if( !fp )
 	{
-		ModuleConfigStatus.append( "\t\t(!) Could not open file, even though it exists.\n\n" );
-		return false;
+		ModuleConfigStatus.append( "\t\t\tThe file doesn't exist or could not be opened.\n" );
+		return;
 	}
 
-	bool searchForResources	= true;
-	bool searchForUrls		= true;
-
-	if( !required )
-	{
-		searchForResources	= !resList->size();
-		searchForUrls		= !urlList->size();
-	}
-
-	ModuleConfigStatus.append( UTIL_VarArgs( "\t\tSearching for %s%s%s...\n", 
-		searchForResources ? "resources" : "", 
-		searchForResources && searchForUrls ? " and " : "",
-		searchForUrls ? "urls" : "" ) );
+	ModuleConfigStatus.append( "\t\tSearching for resources and urls...\n\n" );
 
 	char	lineRead[ 134 ], ch;
 	String	line;
 	int		length;
 
 	const char downloadUrlIdent[] = "downloadurl";
+
+	int downloadUrlsCount = 0;
+	int resourcesFilesCount = 0;
 
 	while( fgets( lineRead, charsmax( lineRead ), fp ) )
 	{
@@ -136,7 +117,7 @@ bool retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 			continue;
 		}
 
-		if( searchForUrls && !strncasecmp( line.c_str(), downloadUrlIdent, charsmax( downloadUrlIdent ) ) )
+		if( !strncasecmp( line.c_str(), downloadUrlIdent, charsmax( downloadUrlIdent ) ) )
 		{
 			line.erase( 0, charsmax( downloadUrlIdent ) );
 			line.trim();
@@ -146,16 +127,18 @@ bool retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 			if( !isEntryDuplicated( line.c_str(), urlList ) )
 			{
 				urlList->push_back( line );
-				ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound \"%s\"\n", line.c_str() ) );
+				ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound url \"%s\"\n", line.c_str() ) );
+
+				downloadUrlsCount++;
 			}
 			else
 			{
-				ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound duplicated \"%s\", ignoring...\n", line.c_str() ) );
+				ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound url \"%s\" > Duplicated, ignoring...\n", line.c_str() ) );
 			}
 
 			continue;
 		}
-		else if( searchForResources )
+		else
 		{
 			normalizePath( &line );
 
@@ -168,20 +151,24 @@ bool retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 
 			if( !dirExists( line.c_str() ) )
 			{
-				if( !isEntryDuplicated( line.c_str(), urlList ) )
+				if( !fileExists( line.c_str() ) )
+				{
+					ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound directory \"%s\" > It doesn't seem to exist, ignoring...\n", line.c_str() ) );
+				}
+				else if( !isEntryDuplicated( line.c_str(), urlList ) )
 				{
 					urlList->push_back( line );
-					ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound \"%s\"\n", line.c_str() ) );
+					ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound resource \"%s\"\n", line.c_str() ) );
+
+					resourcesFilesCount++;
 				}
 				else
 				{
-					ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound duplicated \"%s\", ignoring...\n", line.c_str() ) );
+					ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound resource \"%s\" > Duplicated, ignoring...\n", line.c_str() ) );
 				}
 			}
 			else
 			{
-				ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tSearching inside \"%s\" directory...\n", line.c_str() ) );
-
 				#if defined WIN32
 
 				WIN32_FIND_DATA fd;
@@ -189,9 +176,11 @@ bool retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 
 				if( hFile == INVALID_HANDLE_VALUE )
 				{
-					ModuleConfigStatus.append( "\t\t\t\t(!)Could not open directory. Skipping...\n" );
+					ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound directory \"%s\" > Could not open it, ignoring...\n", line.c_str() ) );
 					continue;
 				}
+
+				ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound directory \"%s\" > Searching inside...\n", line.c_str() ) );
 
 				path[ length = strlen( path ) - 1 ] = EOS;
 
@@ -209,18 +198,20 @@ bool retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 						{
 							if( strlen( path + ModName.size() + 1 ) > MaxResLength )
 							{
-								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tSkipping \"%s\" file (full path length > %d)... \n", fd.cFileName, MaxResLength ) );
+								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound resource \"%s\" > Full path length > %d, ignoring... \n", fd.cFileName, MaxResLength ) );
 								continue;
 							}
 
 							if( !isEntryDuplicated( path + ModName.size() + 1, resList ) )
 							{
 								resList->push_back( path + ModName.size() + 1 );
-								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound \"%s\"\n", fd.cFileName ) );
+								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound resource \"%s\"\n", fd.cFileName ) );
+
+								resourcesFilesCount++;
 							}
 							else
 							{
-								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound duplicated \"%s\", ignoring...\n", fd.cFileName ) );
+								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound resource \"%s\" > Duplicated, ignoring...\n", fd.cFileName ) );
 							}
 						}
 					}
@@ -236,8 +227,8 @@ bool retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 
 				if( ( dp = opendir ( buildPathName( path, charsmax( path ), "%s", line.c_str() ) ) ) == NULL )
 				{
-					ModuleConfigStatus.append( "\t\t\t\t(!)Could not open directory. Skipping...\n" );
-					return false;
+                    ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound directory \"%s\" > Could not open it, ignoring...\n", line.c_str() ) );
+					continue;
 				}
 
 				path[ length = strlen( path ) ] = EOS;
@@ -256,18 +247,20 @@ bool retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 						{
 							if( strlen( path + ModName.size() + 1 ) > MaxResLength )
 							{
-								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tSkipping \"%s\" file (full path length > %d)... \n", ep->d_name, MaxResLength ) );
-								continue;
+								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound resource \"%s\" > Full path length > %d, ignoring... \n", ep->d_name, MaxResLength ) );
+                                continue;
 							}
 
-							if( isEntryDuplicated( path + ModName.size() + 1, resList ) )
+							if( !isEntryDuplicated( path + ModName.size() + 1, resList ) )
 							{
 								resList->push_back( path + ModName.size() + 1 );
-								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound \"%s\"\n", ep->d_name ) );
+                                ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound resource \"%s\"\n", ep->d_name ) );
+
+								resourcesFilesCount++;
 							}
 							else
 							{
-								ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound duplicated \"%s\", ignoring...\n", ep->d_name ) );
+                                ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\t\tFound resource \"%s\" > Duplicated, ignoring...\n", ep->d_name ) );
 							}
 						}
 					}
@@ -284,14 +277,10 @@ bool retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 
 	fclose( fp );
 
-	bool result = resList->size() && urlList->size();
-
-	if( !result )
+	if( !resourcesFilesCount && !downloadUrlsCount )
 	{
 		ModuleConfigStatus.append( "\t\t\tNo entries found.\n" );
 	}
-
-	return result;
 }
 
 bool isEntryDuplicated( const char* entry, CVector< String >* entriesList )

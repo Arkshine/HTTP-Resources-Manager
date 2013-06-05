@@ -30,7 +30,7 @@ String	getMapPrefix	( String mapName );
 time_t	getSysTime		( void );
 
 String	normalizePath	( String* file );
-char*	buildPathName	( char *buffer, size_t maxlen, char *fmt, ... );
+char*	buildPathName	( char *buffer, size_t maxlen, const char *fmt, ... );
 
 bool	dirExists		( const char *dir );
 bool	fileExists		( const char *file );
