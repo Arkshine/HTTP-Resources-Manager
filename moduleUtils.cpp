@@ -121,6 +121,7 @@ uint32 fileSize( const char* file )
 	{
 		fseek( f, 0, SEEK_END );
 		size = ( int )ftell( f );
+		fclose( f );
 	}
 
 	fullpath[ 0 ] = EOS;
@@ -128,7 +129,7 @@ uint32 fileSize( const char* file )
 	return size;
 }
 
-char* buildPathName( char *buffer, size_t maxlen, char *fmt, ... )
+char* buildPathName( char *buffer, size_t maxlen, const char *fmt, ... )
 {
 	snprintf( buffer, maxlen, "%s%c", ModName.c_str(), PATH_SEP_CHAR );
 
