@@ -34,7 +34,7 @@ CHOOKER_SIG_CALL custom_array[] =
 #include <string.h>
 #include <stdlib.h>
 
-#if defined __linux__
+#if defined( __linux__ ) || defined( OSX )
 
 	#include <sys/mman.h>
 	#include <dlfcn.h>
@@ -154,7 +154,7 @@ class CMemory
 
 		BOOL ChangeMemoryProtection( void* function, unsigned int size, unsigned long newProtection )
 		{
-			#ifdef __linux__
+			#if defined( __linux__ ) || defined( OSX )
 
 				void* alignedAddress = Align( function );
 				return !mprotect( alignedAddress, size, newProtection );
@@ -171,7 +171,7 @@ class CMemory
 
 		BOOL ChangeMemoryProtection( void* address, unsigned int size, unsigned long newProtection, unsigned long &oldProtection )
 		{
-			#ifdef __linux__
+			#if defined( __linux__ ) || defined( OSX )
 
 				void* alignedAddress = Align( address );
 
@@ -357,7 +357,7 @@ class CMemory
 		void *SearchSymbolByAddress( char *symbol, void *libaddr )
 		{
 			//printf("SearchSymbolByAddress: %s libaddr:0x%x\n", symbol, libaddr);
-			#if defined __linux__
+			#if defined( __linux__ ) || defined( OSX )
 
 				Dl_info info;
 				void *handle = ( void* )0xffffffff;
@@ -408,7 +408,7 @@ class CMemory
 
 		void *SearchSymbolByLibrary( char *symbol, char *libname )
 		{
-			printf("SearchSymbolByLibrary: %s libname:%s\n", symbol, libname);
+			//printf("SearchSymbolByLibrary: %s libname:%s\n", symbol, libname);
 			if(!libname)
 				GetLibraryFromAddress( NULL );
 			else
@@ -419,7 +419,7 @@ class CMemory
 	
 		void* GetLibraryFromAddress( void* libaddr )
 		{
-			#ifdef __linux__
+			#if defined( __linux__ ) || defined( OSX )
 			
 				Dl_info info;
 
@@ -461,7 +461,7 @@ class CMemory
 
 		void* GetLibraryFromName( char *libname )
 		{
-			#ifdef __linux__
+			#if defined( __linux__ ) || defined( OSX )
 
 				library = libname;
 				int baseaddress;
@@ -903,7 +903,7 @@ class CHooker
 		}
 };
 
-#ifdef __linux__
+#if defined( __linux__ ) || defined( OSX )
 
 	static int dl_callback( struct dl_phdr_info *info, size_t size, void *data )
 	{

@@ -74,7 +74,7 @@ bool findFunctions( void )
 {
 	void* engineAddress = Hooker->memFunc->GetLibraryFromAddress( ( void* )gpGlobals );
 
-	#if defined __linux__
+	#if defined( __linux__ ) || defined( OSX )
 		BOOL useSymbol = TRUE;
 	#else
 		BOOL useSymbol = FALSE;
@@ -88,7 +88,7 @@ bool findFunctions( void )
 
 	Steam_NotifyClientDisconnect = Hooker->MemorySearch< FuncSteam_NotifyClientDisconnect >( FUNC_STEAM_NOTIFYCLIENTDISCONNECT_DS, engineAddress, useSymbol );
 
-	#if defined __linux__
+	#if defined( __linux__ ) || defined( OSX )
 
 	return	SV_SendResources				&& 
 			SV_SendConsistencyList			&& 
@@ -114,7 +114,7 @@ bool findFunctions( void )
 
 bool findServerStructAddress( void )
 {
-	#if defined __linux__
+	#if defined( __linux__ ) || defined( OSX )
 		sv = Hooker->MemorySearch< server_s* >( FUNC_SV_DS, ( void* )gpGlobals, TRUE );
 	#else
 		sv = ( server_s* )*( unsigned long* )( ( unsigned char* )Host_IsServerActive + 1 );
