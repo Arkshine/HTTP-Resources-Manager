@@ -6,6 +6,7 @@
 String ModName;
 String ModuleStatus;
 String ModuleConfigStatus;
+String ModuleDebug;
 
 bool MissingConfigs						= false;
 bool EngineConfigReady					= false;
@@ -23,11 +24,17 @@ uint32 CurrentUrlIndex = 0;
 String PlayerCurrentIp			[ MaxClients + 1 ];
 time_t PlayerNextReconnectTime	[ MaxClients + 1 ];
 
-cvar_t rm_enable_downloadfix	= { "rm_enable_downloadfix" , "0" };
+cvar_t rm_enable_downloadfix	= { "rm_enable_downloadfix" , "0", FCVAR_SERVER };
+cvar_t rm_enable_debug      	= { "rm_enable_debug"       , "0", FCVAR_SERVER };
+
+cvar_t* cvar_enable_debug;
 
 void handleCvars( void )
 {
 	CVAR_REGISTER( &rm_enable_downloadfix );
+    CVAR_REGISTER( &rm_enable_debug );
+
+    cvar_enable_debug = CVAR_GET_POINTER( rm_enable_debug.name );
 }
 
 void handleConfig( void )

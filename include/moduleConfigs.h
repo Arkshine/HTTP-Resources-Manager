@@ -35,6 +35,7 @@ enum
 extern String ModName;
 extern String ModuleStatus;
 extern String ModuleConfigStatus;
+extern String ModuleDebug;
 
 extern bool MissingConfigs;
 extern bool EngineConfigReady;
@@ -49,6 +50,7 @@ extern String PlayerCurrentIp			[ MaxClients + 1 ];
 extern time_t PlayerNextReconnectTime	[ MaxClients + 1 ];
 
 extern cvar_t rm_enable_downloadfix;
+extern cvar_t* cvar_enable_debug;
 
 void	handleCvars			( void );
 void	handleConfig		( void );

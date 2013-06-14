@@ -26,7 +26,6 @@ void OnCommandResourceManager( void )
 
 		else if( sv_allowdownload->value <= 0 )
 			printf( "Not running - You must allow download by setting sv_allowdownload cvar to 1.\n\n" );
-
 		else
 			printf( "Running.\n\n" );
 	}
@@ -41,6 +40,34 @@ void OnCommandResourceManager( void )
 		printf( " Author   : Arkshine\n" );
 		printf( " Compiled : %s, %s\n\n", __DATE__, __TIME__ );
 	}
+    else if( !strcasecmp( command, "debug" ) )  
+    {
+        if( !ModuleDebug.size() )
+        {
+            return;
+        }
+
+        printf( "%s", ModuleDebug.c_str() );
+
+        static const char logDir[] = "addons/http_resources_manager/logs";
+
+        if( !dirExists( logDir ) )
+        {
+            makeDir( logDir );
+        }
+
+        char file[ 512 ];
+        char date[ 32 ];
+
+        time_t td; time( &td );
+
+        strftime( date, sizeof date - 1, "%m-%d-%Y", localtime( &td ) );
+        buildPathName( file, sizeof file - 1, "%s/http-resources-manager-%s.log", logDir, date );
+
+        FILE* h = fopen( file, "w" );
+        fputs( ModuleDebug.c_str(), h );
+        fclose( h );
+    }
 	else
 	{
 		printf( "\n Usage: rm < command >\n" );
@@ -74,6 +101,11 @@ qboolean OnClientConnectPost( edict_t *pEntity, const char *pszName, const char 
 {
 	if( Initialized && sv_allowdownload->value > 0 )
 	{
+        if( cvar_enable_debug->value > 0 )
+        {
+            ModuleDebug.append( UTIL_VarArgs( "\n\"%s\" (index = %d, address = %s) is connecting.\n", pszName, ENTINDEX( pEntity ), pszAddress ) );
+        }
+        
 		if( rm_enable_downloadfix.value <= 0 )
 		{
 			NotifyClientDisconnectHook->Restore();
@@ -154,6 +186,7 @@ void OnServerDeactivatePost( void )
 		CustomUrlsList.clear();
 
 		ModuleConfigStatus.clear();
+        ModuleDebug.clear();
 
         for( int i = 1; i <= gpGlobals->maxClients; i++ )
         {
@@ -170,6 +203,7 @@ void OnMetaDetach( void )
 {
 	ModuleStatus.clear();
 	ModuleConfigStatus.clear();
+    ModuleDebug.clear();
 
 	ModName.clear();
 
@@ -187,6 +221,11 @@ void OnMetaDetach( void )
 
 void OnSV_SendResources( sizebuf_t* buf )
 {
+    if( cvar_enable_debug->value > 0 )
+    {
+        ModuleDebug.append( "\n\tSV_SendResources - Start\n" );
+    }
+    
 	byte temprguc[ 32 ];
 
 	memset( temprguc, 0, sizeof temprguc );
@@ -197,10 +236,27 @@ void OnSV_SendResources( sizebuf_t* buf )
 
 	String url = getNextCustomUrl();
 
+    if( cvar_enable_debug->value > 0 )
+    {
+        if( url.c_str() )
+        {
+            ModuleDebug.append( UTIL_VarArgs( "\n\t\tHTTP URL : %s (size = %d)\n\n\t\t\t-> %s\n", url.c_str(), url.size(), url.size() < MaxUrlLength ? "Valid URL ; size is < 128" :  "Invalid URL ; size >= 128" ) );
+        }
+        else
+        {
+            ModuleDebug.append( "\n\t\tNo HTTP URL found\n" );
+        }
+    }
+
 	if( url.c_str() && url.size() < MaxUrlLength )
 	{
-		MSG_WriteByte( buf, SVC_RESOURCELOCATION);
+		MSG_WriteByte( buf, SVC_RESOURCELOCATION );
 		MSG_WriteString( buf, url.c_str() );
+
+        if( cvar_enable_debug->value > 0 )
+        {
+            ModuleDebug.append( "\t\t\t-> URL has been sent.\n" );
+        }
 	}
 
 	MSG_WriteByte( buf, SVC_RESOURCELIST );
@@ -265,4 +321,9 @@ void OnSV_SendResources( sizebuf_t* buf )
 	SV_SendConsistencyList();
 
 	MSG_EndBitWriting( buf );
+
+    if( cvar_enable_debug->value > 0 )
+    {
+        ModuleDebug.append( "\n\tSV_SendResources - End\n\n" );
+    }
 }

@@ -184,6 +184,18 @@ bool dirExists( const char *dir )
 	return false;
 }
 
+void makeDir( const char *dir )
+{
+    char realpath[ 255 ];
+    buildPathName( realpath, charsmax( realpath ), "%s", dir );
+
+    #if defined( __linux__ ) || defined( __APPLE__ )
+        mkdir( realpath, 0700 );
+    #else
+        mkdir( realpath );
+    #endif
+}
+
 bool fileExists( const char *file )
 {
 	char realFile[ 255 ];

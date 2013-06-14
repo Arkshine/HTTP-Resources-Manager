@@ -4,7 +4,7 @@
 
 // Module info
 #define MODULE_NAME		"HTTP Resources Manager"
-#define MODULE_VERSION	"2.0"
+#define MODULE_VERSION	"2.0.1"
 #define MODULE_AUTHOR	"Arkshine"
 #define MODULE_URL		"http://forums.alliedmods.net"
 #define MODULE_LOGTAG	"HTTP_RESSOURCES_MANAGER"

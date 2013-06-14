@@ -33,6 +33,7 @@ String	normalizePath	( String* file );
 char*	buildPathName	( char *buffer, size_t maxlen, const char *fmt, ... );
 
 bool	dirExists		( const char *dir );
+void    makeDir         ( const char *realpath );
 bool	fileExists		( const char *file );
 uint32	fileSize		( const char* file );
 
