@@ -162,9 +162,9 @@ void retrieveFileEntries( const char* file, CVector< String >* resList, CVector<
 				{
 					ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound directory \"%s\" > It doesn't seem to exist, ignoring...\n", line.c_str() ) );
 				}
-				else if( !isEntryDuplicated( line.c_str(), urlList ) )
+				else if( !isEntryDuplicated( line.c_str(), resList ) )
 				{
-					urlList->push_back( line );
+					resList->push_back( line );
 					ModuleConfigStatus.append( UTIL_VarArgs( "\t\t\tFound resource \"%s\"\n", line.c_str() ) );
 
 					resourcesFilesCount++;
